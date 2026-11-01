@@ -1,0 +1,7 @@
+This repository adapts ideas and some wording from pstack
+(https://github.com/cursor/plugins/tree/main/pstack), MIT License,
+Copyright (c) 2026 Lauren Tan. The Lock-in, Maintain and Statechart modes
+of skills/fused-formal-verification/SKILL.md are rewritten from
+create-formal-verification-skill, maintain-formal-verification-skill and
+statechart. The sweep phase follows the method Boris Cherny described
+publicly (see research/pstack-vs-boris-2026-11-01.md for sources).
