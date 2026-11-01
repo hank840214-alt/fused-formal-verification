@@ -24,12 +24,16 @@ The person asking does not need to know TLA+ or Lean. Every report is readable w
 ## Install (Claude Code)
 
 ```sh
-git clone https://github.com/<you>/fused-formal-verification ~/fused-formal-verification
+git clone https://github.com/hank840214-alt/fused-formal-verification ~/fused-formal-verification
 ln -s ~/fused-formal-verification/skills/fused-formal-verification ~/.claude/skills/fused-formal-verification
 ln -s ~/fused-formal-verification/skills/formal-bug-hunt ~/.claude/skills/formal-bug-hunt
 ```
 
+Then, in Claude Code, say `debug` for the light path or `/fused-formal-verification` for the full one. Codex and other harnesses: point them at the two `SKILL.md` files.
+
 Tools: TLA+ (`tla2tools.jar` + Java 21) and Lean 4 (`elan`). The skill says which one a question needs.
+
+Non-engineer explainer (Traditional Chinese): https://hank840214-alt.github.io/fused-formal-verification/
 
 ## License
 
