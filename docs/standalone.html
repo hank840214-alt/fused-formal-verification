@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="給非工程師的互動說明：fused-formal-verification 怎麼用小地圖找出測試走不到的程式錯誤，再把規則鎖成一分鐘的檢查。">
+<title>fused-formal-verification：測試沒走到的路，它會走完</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;800&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · shape: Station Sequence · genre: modern-minimal · theme: Wayfind (deal 3/3, seed interactive-explainer-non-engineers-how-25c9·9d4ebffa·2026-11-01·r0) · job: try · draw: manual (material: the product built live)
+ * hero: Stage · nav: edge-aligned, wordmark and one action · footer: mast · imagery: the product, built live (the seat race) · signature: the seat race run step by step in the hero, breaking the rule on screen · wayfind: platform
+ * axes: light/mono/cool · posture: committed · contrast: pass · fold: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V3 · weakest: V, the log is empty so variety is unproven; kept the hero to one live board instead of a figure row */
+/* Hallmark · waive 64 · labels use Chivo Mono 500 · mono is the theme's material (Wayfind) */
+/* Hallmark · answered F4 · one filled primary button (.btn--primary, 跑完所有順序); the ink-filled .choice and .steps cells are the selected state of a choice set per Wayfind, not buttons */
+:root {
+  color-scheme: light;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.8125rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.25rem; --text-xl: 1.5625rem; --text-2xl: 1.953rem; --text-3xl: 2.441rem;
+  --text-display-s: clamp(2.25rem, 4vw + 0.5rem, 3.75rem); --text-display: clamp(2.75rem, 5vw + 1rem, 5.25rem);
+  --text-section: clamp(2rem, 2.5vw + 1rem, 3.5rem); --text-title: clamp(1.25rem, 0.75vw + 0.875rem, 1.625rem); --text-lead: clamp(1.125rem, 0.35vw + 1rem, 1.375rem);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(52% 0.19 27); --color-success: oklch(50% 0.12 150);
+  --container: 1440px; --gutter: 64px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+  --color-paper: oklch(95.5% 0.006 250); --color-paper-2: oklch(91% 0.009 250); --color-paper-3: oklch(99.5% 0.005 250);
+  --color-ink: oklch(16% 0.014 262); --color-ink-2: oklch(29% 0.014 262); --color-muted: oklch(47% 0.016 260);
+  --color-rule: oklch(80% 0.011 250); --color-ink-rule: oklch(34% 0.014 262);
+  --color-accent: oklch(51% 0.22 264); --color-accent-2: oklch(81% 0.16 82); --color-accent-ink: oklch(99.5% 0.003 250); --color-focus: oklch(51% 0.22 264);
+  --font-display: "Chivo Mono", ui-monospace, monospace; --font-body: var(--font-display); --font-outlier: var(--font-body);
+  --radius-card: 0; --radius-pill: 999px; --rule-hair: 1px; --rule-bar: 2px;
+  --shadow-card: 0 24px 40px -24px oklch(8% 0.01 260 / 0.6);
+  --tracking-display: -0.03em; --display-weight: 800;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-muted) var(--color-paper); scroll-padding-top: var(--space-3xl); }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); font-size: var(--text-md); line-height: 1.55; -webkit-font-smoothing: antialiased; caret-color: var(--color-accent); }
+::selection { background: var(--color-accent-2); color: var(--color-ink); }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: var(--display-weight, 700); font-synthesis: none; letter-spacing: var(--tracking-display); line-height: 1.05; overflow-wrap: break-word; min-width: 0; text-wrap: balance; }
+h1 { max-width: 20ch; font-size: var(--text-display); } h2 { max-width: 30ch; font-size: var(--text-section); } h3 { max-width: 40ch; font-size: var(--text-title); line-height: 1.2; }
+.lead { font-size: var(--text-lead); line-height: 1.45; max-width: 52ch; }
+p { margin: 0; text-wrap: pretty; }
+p:not([class]) { max-width: 65ch; }
+img, video { max-width: 100%; height: auto; display: block; }
+svg { display: block; }
+[hidden] { display: none !important; }
+button, input, select, textarea { font: inherit; }
+.container { width: 100%; max-width: var(--container); margin-inline: auto; padding-inline: var(--gutter); box-sizing: border-box; }
+.num, .figure, td.num { font-variant-numeric: tabular-nums; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[data-slot] { position: relative; overflow: hidden; background: linear-gradient(160deg, var(--color-paper-2, var(--color-paper)), var(--color-paper-3, var(--color-paper))); }
+[data-slot] > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+[data-slot]:has(> img) > :not(img):not([data-keep]) { display: none !important; }
+@media (max-width: 60rem) { :root { --gutter: 24px; --section-gap-s: 80px; --section-gap: 96px; --section-gap-l: 120px; } }
+@media (max-width: 40rem) { :root { --gutter: 16px; --section-gap-s: 56px; --section-gap: 72px; --section-gap-l: 96px; --gap-columns: 16px; } }
+@media (prefers-reduced-motion: reduce) { *:not(.keep-motion), *:not(.keep-motion)::before, *:not(.keep-motion)::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
+/* photographs: natural sat=-12 con=10 */
+[data-slot] > img { filter: saturate(0.88) contrast(1.1); }
+
+
+body { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-weight: 800; line-height: 0.98; }
+h1 { font-size: min(var(--text-display), 4.75rem); max-width: 16ch; }
+h2 { font-size: var(--text-section); max-width: 24ch; }
+small, th, figcaption, .label { font-weight: 500; color: var(--color-muted); font-size: var(--text-sm); }
+
+.nav { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding-block: var(--space-md); border-bottom: var(--rule-bar) solid var(--color-ink); }
+.wordmark { font-weight: 800; text-decoration: none; }
+
+.hero { padding-block: var(--space-2xl) var(--section-gap-s); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--gap-columns); align-items: start; }
+.hero__text { display: grid; gap: var(--space-lg); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+
+.btn { display: inline-flex; align-items: center; gap: var(--space-xs); min-height: 48px; padding: var(--space-sm) var(--space-lg); border: var(--rule-bar) solid var(--color-ink); background: transparent; color: var(--color-ink); font: 800 var(--text-sm)/1 var(--font-body); text-decoration: none; cursor: pointer; transition: background-color var(--dur-micro) steps(1), color var(--dur-micro) steps(1); }
+.btn:hover { background: var(--color-paper-2); }
+.btn:active { background: var(--color-rule); }
+.btn--primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }
+.btn--primary:hover { background: var(--color-ink); border-color: var(--color-ink); }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
+.btn--small { min-height: 40px; padding: var(--space-xs) var(--space-md); }
+
+.board { border: var(--rule-bar) solid var(--color-ink); background: var(--color-ink); color: var(--color-paper); display: grid; }
+.board__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-md); padding: var(--space-sm) var(--space-md); border-bottom: var(--rule-bar) solid var(--color-paper); }
+.board__head strong { font-weight: 800; }
+.board__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-md); align-items: center; padding: var(--space-sm) var(--space-md); border-bottom: var(--rule-hair) solid var(--color-ink-rule); }
+.board__row:last-child { border-bottom: 0; }
+.figure { font-weight: 800; color: var(--color-accent-2); font-size: var(--text-title); }
+.figure--big { font-size: var(--text-display-s); line-height: 1; }
+.board__row[data-state="bad"] { background: var(--color-accent-2); color: var(--color-ink); }
+.board__row[data-state="bad"] .figure { color: var(--color-ink); }
+.live { display: inline-block; width: 10px; height: 10px; background: var(--color-accent); vertical-align: middle; margin-inline-end: var(--space-2xs); }
+.live.blink { animation: blink var(--dur-short) steps(1) 1; }
+@keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } }
+
+.controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: var(--rule-bar) solid var(--color-ink); margin-top: var(--space-md); }
+.controls .btn { border: 0; border-right: var(--rule-bar) solid var(--color-ink); border-bottom: var(--rule-bar) solid var(--color-ink); justify-content: center; }
+.controls .btn:nth-child(2n) { border-right: 0; }
+.controls .btn:last-child { border-bottom: 0; }
+.controls__wide { grid-column: 1 / -1; border-right: 0; }
+
+.choice { display: flex; flex-wrap: wrap; border: var(--rule-bar) solid var(--color-ink); width: max-content; max-width: 100%; }
+.choice button { border: 0; border-right: var(--rule-bar) solid var(--color-ink); background: transparent; color: var(--color-ink); padding: var(--space-sm) var(--space-md); font-weight: 500; cursor: pointer; transition: background-color var(--dur-micro) steps(1), color var(--dur-micro) steps(1); }
+.choice button:last-child { border-right: 0; }
+.choice button[aria-pressed="true"] { background: var(--color-ink); color: var(--color-paper); }
+.choice button:hover:not([aria-pressed="true"]) { background: var(--color-paper-2); }
+
+.section { padding-block: var(--section-gap-s); border-top: var(--rule-bar) solid var(--color-ink); display: grid; gap: var(--space-lg); }
+.section--band { background: var(--color-paper-2); }
+.section > header { display: grid; gap: var(--space-sm); }
+
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: var(--rule-bar) solid var(--color-ink); }
+.steps button { text-align: left; border: 0; border-right: var(--rule-bar) solid var(--color-ink); background: var(--color-paper-3); color: var(--color-ink); padding: var(--space-md); display: grid; gap: var(--space-2xs); cursor: pointer; min-height: 120px; transition: background-color var(--dur-micro) steps(1), color var(--dur-micro) steps(1); }
+.steps button:last-child { border-right: 0; }
+.steps button[aria-pressed="true"] { background: var(--color-ink); color: var(--color-paper); }
+.steps button[aria-pressed="true"] .figure { color: var(--color-accent-2); }
+.steps button .figure { color: var(--color-ink); }
+.steps button[aria-pressed="true"] small { color: var(--color-paper-2); }
+
+.plate { border: var(--rule-bar) solid var(--color-ink); background: var(--color-ink); color: var(--color-paper); padding: var(--space-lg); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-lg); }
+.plate h3 { color: var(--color-accent-2); grid-column: 1 / -1; }
+.plate dl { margin: 0; display: grid; gap: var(--space-2xs); }
+.plate dt { font-weight: 500; color: var(--color-paper-2); font-size: var(--text-sm); }
+.plate dd { margin: 0; }
+
+.code { border: var(--rule-bar) solid var(--color-ink); background: var(--color-paper-3); padding: var(--space-md); margin: 0; overflow-x: auto; font-size: var(--text-sm); line-height: 1.6; }
+.code ins { text-decoration: none; background: var(--color-accent-2); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-columns); align-items: start; }
+.stack { display: grid; gap: var(--space-md); }
+
+.rows { border-top: var(--rule-bar) solid var(--color-ink); }
+.row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; gap: var(--space-md); align-items: baseline; padding: var(--space-sm) 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+.row strong { font-weight: 800; }
+.row .tag { justify-self: end; border: var(--rule-bar) solid var(--color-ink); padding: var(--space-3xs) var(--space-xs); font-weight: 500; font-size: var(--text-sm); white-space: nowrap; }
+.row .tag--live { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-ink); }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: var(--space-xs) 0; border-bottom: var(--rule-bar) solid currentColor; }
+td { padding: var(--space-xs) var(--space-sm) var(--space-xs) 0; border-bottom: var(--rule-hair) solid var(--color-rule); vertical-align: top; }
+td:first-child { font-weight: 800; white-space: nowrap; }
+
+.footer { border-top: var(--rule-bar) solid var(--color-ink); padding-block: var(--space-xl) var(--space-2xl); display: grid; gap: var(--space-md); }
+.footer__links { display: flex; flex-wrap: wrap; gap: var(--space-md); }
+
+.path { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); counter-reset: step; }
+.path li { counter-increment: step; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-sm); }
+.path li::before { content: counter(step); font-weight: 800; color: var(--color-accent-2); }
+
+@media (max-width: 60rem) {
+  .hero, .two, .plate { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steps button:nth-child(2) { border-right: 0; }
+  .steps button:nth-child(-n+2) { border-bottom: var(--rule-bar) solid var(--color-ink); }
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .row .tag { justify-self: start; }
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+<nav class="nav" aria-label="主選單">
+  <a class="wordmark" href="#top">fused-formal-verification</a>
+  <a class="btn btn--small" href="#modes">四個模式</a>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero__text">
+    <h1>測試沒走到的路，它會走完。</h1>
+    <p class="lead">先把程式畫成一張小地圖，讓電腦把每一種先後順序都走一遍，找到會壞的那條路，再把它鎖起來不讓它再壞。</p>
+    <div class="actions">
+      <button class="btn btn--primary" type="button" id="run-all">跑完所有順序</button>
+      <a class="btn" href="#modes">它分四步做</a>
+    </div>
+    <p><small>右邊是真的在跑的小模型。兩個人搶最後一個座位，規則只有一條：座位不能給兩個人。</small></p>
+  </div>
+
+  <div class="stack" aria-live="polite">
+    <div class="board" id="board">
+      <div class="board__head"><strong>最後一個座位</strong><span id="mode-label"><span class="live" id="live"></span>今天的程式</span></div>
+      <div class="board__row"><span>剩下的座位</span><span class="figure figure--big" id="seats">1</span></div>
+      <div class="board__row" id="rowA"><span>甲</span><span class="figure" id="stateA">還沒看</span></div>
+      <div class="board__row" id="rowB"><span>乙</span><span class="figure" id="stateB">還沒看</span></div>
+      <div class="board__row" id="rule-row"><span>規則：座位不能給兩個人</span><span class="figure" id="rule">守住</span></div>
+    </div>
+    <div class="controls">
+      <button class="btn" type="button" data-act="A:look">甲 看座位</button>
+      <button class="btn" type="button" data-act="B:look">乙 看座位</button>
+      <button class="btn" type="button" data-act="A:take">甲 搶座位</button>
+      <button class="btn" type="button" data-act="B:take">乙 搶座位</button>
+      <button class="btn controls__wide" type="button" id="toggle-fix" aria-pressed="false">開啟修正：看和搶合成一步</button>
+      <button class="btn controls__wide" type="button" id="reset">重來</button>
+    </div>
+    <div class="board" id="result" hidden>
+      <div class="board__head"><strong>所有順序</strong><span id="result-count"></span></div>
+      <div class="board__row"><ol class="path" id="result-path"></ol></div>
+    </div>
+  </div>
+</header>
+
+<section class="section" id="modes">
+  <header>
+    <h2>它分四步做</h2>
+    <p>點一步，看你會拿到什麼、要決定什麼。</p>
+  </header>
+  <div class="steps" role="tablist" aria-label="四個模式">
+    <button type="button" role="tab" aria-pressed="true" data-mode="create"><span class="figure">1</span><strong>掃雷</strong><small>Create</small></button>
+    <button type="button" role="tab" aria-pressed="false" data-mode="lock"><span class="figure">2</span><strong>鎖定</strong><small>Lock-in</small></button>
+    <button type="button" role="tab" aria-pressed="false" data-mode="maintain"><span class="figure">3</span><strong>維護</strong><small>Maintain</small></button>
+    <button type="button" role="tab" aria-pressed="false" data-mode="chart"><span class="figure">4</span><strong>畫給人看</strong><small>Statechart</small></button>
+  </div>
+  <div class="plate" id="mode-plate">
+    <h3 id="mp-title"></h3>
+    <dl><dt>它做什麼</dt><dd id="mp-what"></dd></dl>
+    <dl><dt>你會拿到</dt><dd id="mp-get"></dd></dl>
+    <dl><dt>你要決定</dt><dd id="mp-decide"></dd></dl>
+  </div>
+</section>
+
+<section class="section section--band" id="drift">
+  <header>
+    <h2>程式改了，檢查會自己喊</h2>
+    <p>守門檢查記得它看過的每一段程式。有人改了那一段，它先喊，再請人跑維護。</p>
+  </header>
+  <div class="two">
+    <div class="stack">
+      <pre class="code" id="code"><code>function handleJoin(room, user) {
+  if (room.seats === 0) return "full";
+  room.seats -= 1;
+  room.members.push(user);
+}</code></pre>
+      <button class="btn" type="button" id="toggle-drift" aria-pressed="false">有人改了這段程式</button>
+    </div>
+    <div class="board">
+      <div class="board__head"><strong>守門檢查</strong><span id="hash"></span></div>
+      <div class="board__row" id="drift-row"><span>handleJoin</span><span class="figure" id="drift-state">沒變</span></div>
+      <div class="board__row"><span>該做的事</span><span id="drift-next">不用做</span></div>
+      <div class="board__row" id="outcome-row" hidden><span>維護的四種結果</span>
+        <div class="choice" aria-label="維護結果">
+          <button type="button" data-outcome="sync" aria-pressed="false">沒影響</button>
+          <button type="button" data-outcome="updated" aria-pressed="false">地圖更新了</button>
+          <button type="button" data-outcome="bug" aria-pressed="false">真的壞了</button>
+          <button type="button" data-outcome="blocked" aria-pressed="false">卡住</button>
+        </div>
+      </div>
+      <div class="board__row" id="outcome-text" hidden><span id="outcome-explain"></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="when">
+  <header>
+    <h2>什麼時候叫它</h2>
+  </header>
+  <div class="rows">
+    <div class="row"><strong>兩個人同時做一件事</strong><span>搶座位、同時付款、同時改同一筆資料、斷線重連</span><span class="tag tag--live">掃雷</span></div>
+    <div class="row"><strong>金額、帳號、權限</strong><span>總數要對、刪帳號不能留後門、撤銷不能誤殺</span><span class="tag tag--live">掃雷</span></div>
+    <div class="row"><strong>有地圖的區域又改了程式</strong><span>合併、重構、別人沒跑檢查就改了</span><span class="tag">維護</span></div>
+    <div class="row"><strong>要給設計師或老闆看</strong><span>一張圖，用他們的話標每一格</span><span class="tag">畫給人看</span></div>
+    <div class="row"><strong>一般的 bug</strong><span>先重現、修、加一個會抓到它的測試就好</span><span class="tag">不用</span></div>
+  </div>
+</section>
+
+<section class="section section--band" id="words">
+  <header>
+    <h2>報告裡會出現的字</h2>
+  </header>
+  <table>
+    <thead><tr><th>字</th><th>意思</th></tr></thead>
+    <tbody>
+      <tr><td>CONFIRMED</td><td>在真的程式上重現了，而且主 session 自己再跑過一次。</td></tr>
+      <tr><td>PLAUSIBLE</td><td>地圖上壞了，真程式還沒重現。先當線索，不當 bug。</td></tr>
+      <tr><td>INCONCLUSIVE</td><td>跑到一半被時間砍掉。不是通過。</td></tr>
+      <tr><td>mutation 表</td><td>故意拆掉一個防護，檢查有沒有喊。沒喊過的檢查不算數。</td></tr>
+      <tr><td>sync commit</td><td>地圖最後一次確認和程式一樣的那個版本。</td></tr>
+      <tr><td>drift guard</td><td>程式改了、地圖沒改時會喊的那個小測試。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer class="footer">
+  <strong class="wordmark">fused-formal-verification</strong>
+  <p>掃雷做法來自 Boris Cherny 公開的 Lean／TLA+ 流程。鎖定、維護、畫圖改寫自 pstack（Lauren Tan，MIT）。</p>
+  <div class="footer__links">
+    <a href="https://github.com/cursor/plugins/tree/main/pstack">pstack</a>
+    <a href="https://x.com/bcherny/status/2102543349102338309">Boris 的推文</a>
+    <a href="https://github.com/hank840214/fused-formal-verification">skill 全文</a>
+  </div>
+</footer>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const names = { A: "甲", B: "乙" };
+  let fixed = false;
+  let st;
+  const init = () => { st = { seats: 1, A: { seen: null, got: false }, B: { seen: null, got: false } }; };
+  init();
+
+  const apply = (s, actor, act) => {
+    const a = s[actor];
+    if (act === "look") { if (a.seen !== null) return false; a.seen = s.seats; return true; }
+    if (act === "take") {
+      if (fixed) { if (a.got || a.seen === "done") return false; a.seen = "done"; if (s.seats > 0) { s.seats -= 1; a.got = true; } return true; }
+      if (a.seen === null || a.got || a.seen === "done") return false;
+      if (a.seen > 0) { s.seats -= 1; a.got = true; }
+      a.seen = "done"; return true;
+    }
+    return false;
+  };
+  const broken = (s) => s.A.got && s.B.got;
+  const label = (a) => a.got ? "拿到了" : a.seen === "done" ? "沒座位" : a.seen === null ? "還沒看" : "看到剩 " + a.seen;
+
+  const render = () => {
+    $("#seats").textContent = Math.max(st.seats, 0);
+    $("#stateA").textContent = label(st.A);
+    $("#stateB").textContent = label(st.B);
+    const bad = broken(st);
+    $("#rule").textContent = bad ? "壞了：兩人都拿到" : "守住";
+    $("#rule-row").dataset.state = bad ? "bad" : "ok";
+    $("#mode-label").lastChild.textContent = fixed ? "修正後的程式" : "今天的程式";
+    document.querySelectorAll("[data-act]").forEach((b) => {
+      const [actor, act] = b.dataset.act.split(":");
+      const copy = JSON.parse(JSON.stringify(st));
+      b.disabled = !apply(copy, actor, act);
+      if (fixed && act === "look") b.disabled = true;
+    });
+    const live = $("#live"); live.classList.remove("blink"); void live.offsetWidth; live.classList.add("blink");
+  };
+
+  document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
+    const [actor, act] = b.dataset.act.split(":");
+    apply(st, actor, act); render();
+  }));
+  $("#reset").addEventListener("click", () => { init(); $("#result").hidden = true; render(); });
+  $("#toggle-fix").addEventListener("click", (e) => {
+    fixed = !fixed; e.currentTarget.setAttribute("aria-pressed", String(fixed));
+    e.currentTarget.textContent = fixed ? "關閉修正：看和搶分開兩步" : "開啟修正：看和搶合成一步";
+    init(); $("#result").hidden = true; render();
+  });
+
+  const stepsFor = () => fixed ? ["A:take", "B:take"] : ["A:look", "A:take", "B:look", "B:take"];
+  const say = (step) => { const [actor, act] = step.split(":"); return names[actor] + (act === "look" ? " 看座位" : fixed ? " 搶座位（一步做完）" : " 搶座位"); };
+  const runAll = () => {
+    const all = []; let shortest = null;
+    const walk = (s, remaining, path) => {
+      if (remaining.length === 0) { all.push({ bad: broken(s), path }); if (broken(s) && (!shortest || path.length < shortest.length)) shortest = path; return; }
+      for (const step of remaining) {
+        const [actor, act] = step.split(":");
+        if (act === "take" && !fixed && s[actor].seen === null) continue;
+        const copy = JSON.parse(JSON.stringify(s));
+        if (!apply(copy, actor, act)) continue;
+        walk(copy, remaining.filter((x) => x !== step), path.concat(step));
+      }
+    };
+    const seed = { seats: 1, A: { seen: null, got: false }, B: { seen: null, got: false } };
+    walk(seed, stepsFor(), []);
+    const badCount = all.filter((r) => r.bad).length;
+    $("#result").hidden = false;
+    $("#result-count").textContent = `${all.length} 種順序，${badCount} 種壞掉`;
+    const ol = $("#result-path"); ol.innerHTML = "";
+    if (shortest) {
+      shortest.forEach((step) => { const li = document.createElement("li"); li.textContent = say(step); ol.appendChild(li); });
+      const li = document.createElement("li"); li.textContent = "兩人都拿到同一個座位。規則壞了。"; ol.appendChild(li);
+    } else {
+      const li = document.createElement("li"); li.textContent = "每一種順序都守住規則。這就是「鎖定」要留下來的檢查。"; ol.appendChild(li);
+    }
+    $("#result").scrollIntoView({ block: "nearest" });
+  };
+  $("#run-all").addEventListener("click", runAll);
+  render();
+
+  const modes = {
+    create: { t: "1 掃雷：把程式畫成小地圖，找會壞的順序", what: "挑一段最怕壞的程式（搶座位、付款、登入），畫成只有兩三個人的小地圖，讓電腦把每種先後順序走完。每個壞掉的順序都在真的程式上重現一次，重現不出來就是地圖畫錯。", get: "一張發現清單：每條有重現步驟、哪個檔案哪一行、壞了會怎樣。", decide: "從三到五個候選目標裡挑一個。看到發現後，決定修不修、怎麼修。" },
+    lock: { t: "2 鎖定：把最重要的規則變成一分鐘的檢查", what: "留下一到三條最重要的規則。先故意拆掉一個防護，確認檢查會喊；再把檢查和地圖放進 repo，加一個「程式改了就喊」的小測試。", get: "一個指令跑完的守門檢查、一張「拆掉什麼→它有沒有喊」的表、一份給下個人看的說明。", decide: "檢查放在 repo 哪裡。要不要每次改這段程式都跑。" },
+    maintain: { t: "3 維護：程式改了，地圖跟著改", what: "從上次確認的版本讀到現在，看哪些改動碰到地圖畫的地方。先從程式改地圖，再跑檢查。每個檢查只給一種結果。", get: "每個檢查一行：沒影響、地圖更新了、真的壞了、卡住。壞了的附上是哪個 commit 帶進來的。", decide: "「真的壞了」要不要修。「卡住」要不要給更多時間。" },
+    chart: { t: "4 畫給人看：一張圖，用你的話", what: "把地圖畫成狀態圖。每一格寫你會看到的畫面，每條線寫你做的動作。會壞的格子標起來，附最短走到它的路。", get: "一張 Mermaid 圖、每個 bug 一句話加編號路徑、圖裡省略了什麼。", decide: "這個行為對不對。這是產品的決定，不是工程的。" }
+  };
+  const showMode = (k) => {
+    const m = modes[k];
+    $("#mp-title").textContent = m.t; $("#mp-what").textContent = m.what; $("#mp-get").textContent = m.get; $("#mp-decide").textContent = m.decide;
+    document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === k)));
+  };
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => showMode(b.dataset.mode)));
+  showMode("create");
+
+  const hashOf = async (text) => {
+    if (!crypto.subtle) return "n/a";
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].slice(0, 4).map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+  const original = $("#code code").textContent;
+  const changed = original.replace("  room.seats -= 1;\n", "");
+  let drifted = false;
+  const outcomes = { sync: "改動沒碰到地圖畫的地方。檢查照舊通過。", updated: "程式的形狀變了，地圖照程式改好，檢查通過。故意拆一次確認它還會喊。", bug: "地圖已經和程式一樣，規則還是壞。附上是哪個 commit 帶進來的，等你決定修不修。", blocked: "跑不完或對不上。寫清楚為什麼，不移動 sync commit。" };
+  const renderDrift = async () => {
+    const text = drifted ? changed : original;
+    $("#code code").innerHTML = drifted ? original.replace("  room.seats -= 1;\n", "").replace("  if (room.seats === 0) return \"full\";", "  if (room.seats === 0) return \"full\";\n") : original;
+    if (drifted) $("#code code").innerHTML = "function handleJoin(room, user) {\n  if (room.seats === 0) return \"full\";\n  <ins>// 少了一行：座位數沒有減一</ins>\n  room.members.push(user);\n}";
+    $("#hash").textContent = "sha256 " + (await hashOf(text));
+    $("#drift-state").textContent = drifted ? "變了" : "沒變";
+    $("#drift-row").dataset.state = drifted ? "bad" : "ok";
+    $("#drift-next").textContent = drifted ? "跑維護，給每個檢查一個結果" : "不用做";
+    $("#outcome-row").hidden = !drifted; $("#outcome-text").hidden = true;
+    document.querySelectorAll("[data-outcome]").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  };
+  $("#toggle-drift").addEventListener("click", (e) => { drifted = !drifted; e.currentTarget.setAttribute("aria-pressed", String(drifted)); e.currentTarget.textContent = drifted ? "改回來" : "有人改了這段程式"; renderDrift(); });
+  document.querySelectorAll("[data-outcome]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("[data-outcome]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    $("#outcome-explain").textContent = outcomes[b.dataset.outcome]; $("#outcome-text").hidden = false;
+  }));
+  renderDrift();
+})();
+</script>
+</body>
+</html>

@@ -44,8 +44,8 @@ small, th, figcaption, .label { font-weight: 500; color: var(--color-muted); fon
 .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: var(--rule-bar) solid var(--color-ink); margin-top: var(--space-md); }
 .controls .btn { border: 0; border-right: var(--rule-bar) solid var(--color-ink); border-bottom: var(--rule-bar) solid var(--color-ink); justify-content: center; }
 .controls .btn:nth-child(2n) { border-right: 0; }
-.controls .btn:nth-last-child(-n+2) { border-bottom: 0; }
-.controls__wide { grid-column: 1 / -1; }
+.controls .btn:last-child { border-bottom: 0; }
+.controls__wide { grid-column: 1 / -1; border-right: 0; }
 
 .choice { display: flex; flex-wrap: wrap; border: var(--rule-bar) solid var(--color-ink); width: max-content; max-width: 100%; }
 .choice button { border: 0; border-right: var(--rule-bar) solid var(--color-ink); background: transparent; color: var(--color-ink); padding: var(--space-sm) var(--space-md); font-weight: 500; cursor: pointer; transition: background-color var(--dur-micro) steps(1), color var(--dur-micro) steps(1); }
