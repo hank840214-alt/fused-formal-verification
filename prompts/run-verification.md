@@ -24,7 +24,7 @@
 `.claude/` 被 gitignore 擋 → **【停下來問 Hank】** 強制加入或放 `formal/`。
 
 ## 第三段：Statechart
-每個發現一張 Mermaid 狀態圖，讀者用語。沒裝 pstack 就用 `scripts/tlc-dot-to-mermaid.mjs`。
+每個發現一張 Mermaid 狀態圖，讀者用語。先用自己的 TLC 多執行緒跑找違規，再用 pstack `statechart` 腳本只畫那條 bug 路徑（設 TLA2TOOLS／JAVA 兩個環境變數，一個 cfg 畫一條規則）。沒裝 pstack 就用 `scripts/tlc-dot-to-mermaid.mjs`。
 
 ## 第四段：交付
 - commit 到 `formal/<領域>-<日期>` 分支，`git push -u`（淺層 clone 補 fetch refspec）。只開 PR 不 merge。

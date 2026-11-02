@@ -17,9 +17,10 @@ The person asking does not need to know TLA+ or Lean. Every report is readable w
 | `skills/formal-bug-hunt/` | thin router for "debug": quick debug stays light, deep work loads the fused skill; `REFERENCE.md` has the report template and TLA+/Lean patterns |
 | `scripts/drift-guard.mjs` | hashes covered function bodies; fails when they change without the model |
 | `scripts/tlc-dot-to-mermaid.mjs` | fallback statechart generator from TLC's `-dump dot` output |
+| `examples/statechart-view-account-binding.mjs` | a real `--view` module for pstack `statechart` (labels in the reader's words, groups, step labels) |
 | `prompts/run-verification.md` | a ready-to-paste task prompt that runs the skill on a project |
 | `docs/index.html` | an interactive explainer for non-engineers |
-| `research/` | source comparison (pstack vs Boris) and what could not be verified |
+| `research/` | source comparison (pstack vs Boris), the pstack `statechart` trial (2026-11-02), and what could not be verified |
 
 ## Install (Claude Code)
 
