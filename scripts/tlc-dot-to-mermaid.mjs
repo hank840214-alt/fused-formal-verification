@@ -24,7 +24,7 @@
 // (`id [label="/\\ x = 1\n/\\ y = \"a\"",style = filled]` and `a -> b [label="Act",...]`),
 // one statement per line. Real TLC output varies between versions (attribute order, trailing
 // semicolons, long values); values that cannot be parsed stay raw strings.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -200,6 +200,8 @@ export async function main(argv) {
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Compare real paths: run through a symlink (macOS /tmp, a linked checkout) argv[1] and import.meta.url differ, and the
+// script would do nothing and exit 0, which a gate reads as a pass. A check must fail loudly when it did not run.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   process.exitCode = await main(process.argv.slice(2));
 }

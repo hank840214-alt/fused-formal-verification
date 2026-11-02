@@ -70,7 +70,7 @@ The user does not need to know TLA+ or Lean. Every report must be readable witho
     - know the bounds, assumptions and what is NOT covered (abstracted flows, time-based expiry, multi-instance).
     Record the **sync commit**: the commit where each check was last confirmed to describe the code. Use real commands, paths and nouns; no placeholders.
 18. Drift guard: a test that hashes the covered function bodies (not whole files) and fails when they change without the model changing too. It tells the next agent to run **Maintain**. (`scripts/drift-guard.mjs` in this repo does this from a `formal/coverage.json` manifest.)
-19. Prove the skill works before handing off: follow it once, as the next agent would, on a scratch change that breaks the property in the real code. It must catch the break. Drop the scratch change and confirm the check is back where it started (passing, or failing only on reported findings). If the skill misses the break, fix the skill or the verification, not the scratch change.
+19. Prove the skill works before handing off: follow it once, as the next agent would, on a scratch change that breaks the property in the real code. It must catch the break. Also prove the check cannot pass by not running: run it from the path the CI and the next agent will use (a symlinked checkout, a temp copy) and require output it can only produce by running, such as a state count or the list of bodies compared; silence or an empty result is a FAIL, never a pass. Drop the scratch change and confirm the check is back where it started (passing, or failing only on reported findings). If the skill misses the break, fix the skill or the verification, not the scratch change.
 
 ## Maintain — keep the verification true to the code
 

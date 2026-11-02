@@ -38,7 +38,7 @@
 //     lines inside are kept). Multi-line strings with text at lower indentation, or tab/space
 //     mixing, can cut the block short. Decorators are not part of the hash.
 //   - Only the covered body is hashed: a change in a helper it calls is NOT detected.
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { resolve, isAbsolute } from 'node:path';
@@ -314,6 +314,8 @@ export function run(argv, out = (s) => process.stdout.write(s + '\n'), err = (s)
   return bad.length ? 1 : 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Compare real paths: run through a symlink (macOS /tmp, a linked checkout) argv[1] and import.meta.url differ, and the
+// script would do nothing and exit 0, which a gate reads as a pass. A check must fail loudly when it did not run.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   process.exitCode = run(process.argv.slice(2));
 }
