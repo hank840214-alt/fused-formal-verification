@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// drift-guard.mjs - hash the bodies of covered functions; fail when they change
-// without the formal verification being re-synced. Dependency-free, Node >= 20.
+// drift-guard.mjs - hash the bodies of covered functions (and the lockfile/config values the
+// model assumes); fail when they change without the formal verification being re-synced. Dependency-free, Node >= 20.
 //
 // Usage:
 //   node drift-guard.mjs update [--manifest formal/coverage.json] [--root .] [--json]
@@ -10,7 +10,19 @@
 //   { "syncCommit": "abc123", "model": ["formal/Lobby.tla"],
 //     "covered": [ { "file": "server/index.ts", "symbol": "handleJoin" },
 //                  { "file": "src/lobby.ts", "symbol": "class Room.start" },
-//                  { "file": "x.js", "symbol": "regex:^app\\.post\\('/join'" } ] }
+//                  { "file": "x.js", "symbol": "regex:^app\\.post\\('/join'" },
+//                  { "file": "package-lock.json", "keys": ["packages.node_modules/ws.version"] },
+//                  { "file": "config/lobby.env" } ] }
+//
+// Entry forms
+//   file + symbol        hash one function body (the forms below).
+//   file + keys          JSON file: hash only the values at these dot paths (a lockfile entry
+//                        for a library whose semantics the model relies on, a timeout or limit
+//                        in a config that is a model constant). A missing path is MISSING.
+//   file alone           hash the whole file (a small config or env file). Use this for what
+//                        the model assumes but no function body shows: changing a package
+//                        version or an environment parameter changes the meaning of the code
+//                        without touching a covered body, and the guard must light up.
 //
 // Supported symbol forms
 //   name                 top-level `function name(`, `async function`, `export`/`default`
@@ -242,10 +254,35 @@ export function extractSymbol(source, symbol, file = 'x.js') {
   return /\.pyi?$/.test(file) ? extractPy(source, symbol) : extractJs(source, symbol);
 }
 
+/** Pick the values at dot paths out of a JSON text; null when a path is absent. */
+export function pickJson(text, keys) {
+  const obj = JSON.parse(text);
+  const picked = {};
+  for (const k of keys) {
+    let cur = obj;
+    for (const part of k.split('.')) cur = cur != null && typeof cur === 'object' ? cur[part] : undefined;
+    if (cur === undefined) return null;
+    picked[k] = cur;
+  }
+  return JSON.stringify(picked, null, 1);
+}
+
+/** What the manifest line shows after the file name. */
+export const entryLabel = (e) => e.symbol ?? (e.keys ? `keys:${e.keys.join(',')}` : '(whole file)');
+
 function computeEntry(root, entry) {
   const p = isAbsolute(entry.file) ? entry.file : resolve(root, entry.file);
   if (!existsSync(p)) return { status: 'MISSING', reason: 'file not found' };
-  const text = extractSymbol(readFileSync(p, 'utf8'), entry.symbol, entry.file);
+  const src = readFileSync(p, 'utf8');
+  if (entry.symbol == null) {
+    if (!entry.keys) return { status: 'OK', hash: sha256(src) };
+    if (!Array.isArray(entry.keys) || entry.keys.length === 0) return { status: 'MISSING', reason: '"keys" must be a non-empty array' };
+    let picked;
+    try { picked = pickJson(src, entry.keys); } catch (e) { return { status: 'MISSING', reason: `not JSON: ${e.message}` }; }
+    if (picked == null) return { status: 'MISSING', reason: 'key not found' };
+    return { status: 'OK', hash: sha256(picked) };
+  }
+  const text = extractSymbol(src, entry.symbol, entry.file);
   if (text == null) return { status: 'MISSING', reason: 'symbol not found' };
   return { status: 'OK', hash: sha256(text) };
 }
@@ -276,7 +313,7 @@ export function run(argv, out = (s) => process.stdout.write(s + '\n'), err = (s)
   try { manifest = JSON.parse(readFileSync(mpath, 'utf8')); } catch (e) { err(`cannot read manifest ${mpath}: ${e.message}`); return 2; }
   if (!Array.isArray(manifest.covered)) { err('manifest has no "covered" array'); return 2; }
 
-  const results = manifest.covered.map((e) => ({ file: e.file, symbol: e.symbol, expected: e.hash ?? null, ...computeEntry(args.root, e) }));
+  const results = manifest.covered.map((e) => ({ file: e.file, symbol: e.symbol, keys: e.keys, label: entryLabel(e), expected: e.hash ?? null, ...computeEntry(args.root, e) }));
   const missing = results.filter((r) => r.status === 'MISSING');
 
   if (cmd === 'update') {
@@ -288,8 +325,8 @@ export function run(argv, out = (s) => process.stdout.write(s + '\n'), err = (s)
     }
     if (args.json) out(JSON.stringify({ ok: missing.length === 0, command: 'update', syncCommit: manifest.syncCommit ?? null, results }, null, 2));
     else {
-      for (const r of results) out(`${r.status === 'OK' ? 'OK' : 'MISSING'} ${r.file} ${r.symbol}`);
-      if (missing.length) err('update aborted: fix MISSING entries (renamed/moved symbol?) in the manifest first; nothing was written.');
+      for (const r of results) out(`${r.status === 'OK' ? 'OK' : 'MISSING'} ${r.file} ${r.label}`);
+      if (missing.length) err('update aborted: fix MISSING entries (renamed/moved symbol, dropped key?) in the manifest first; nothing was written.');
       else out(`updated ${results.length} hash(es) in ${mpath}`);
     }
     return missing.length ? 1 : 0;
@@ -304,7 +341,7 @@ export function run(argv, out = (s) => process.stdout.write(s + '\n'), err = (s)
   const bad = results.filter((r) => r.status !== 'OK');
   if (args.json) out(JSON.stringify({ ok: bad.length === 0, command: 'check', syncCommit: manifest.syncCommit ?? null, results }, null, 2));
   else {
-    for (const r of results) out(`${r.status} ${r.file} ${r.symbol}`);
+    for (const r of results) out(`${r.status} ${r.file} ${r.label}`);
     if (bad.length) {
       err(`\n${bad.length} covered entr${bad.length === 1 ? 'y' : 'ies'} drifted from the formal model (last synced at ${manifest.syncCommit ?? 'unknown'}).`);
       err('Code that the verification covers changed. Run the Maintain mode of the verification skill to re-check/update the model');

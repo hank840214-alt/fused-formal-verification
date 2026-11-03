@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { extractSymbol, sha256, normalize } from '../drift-guard.mjs';
+import { extractSymbol, sha256, normalize, pickJson } from '../drift-guard.mjs';
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'drift-guard.mjs');
 
@@ -155,6 +155,55 @@ test('CLI: update then check passes; unrelated edit passes; covered edit drifts'
   assert.match(r.stdout, /^MISSING server\/index\.ts handleJoin$/m);
   r = cli(root, 'update');
   assert.equal(r.status, 1, 'update refuses when a symbol is missing');
+});
+
+test('pickJson: dot paths, slash keys, missing path', () => {
+  const lock = JSON.stringify({ packages: { 'node_modules/ws': { version: '8.18.0' }, 'node_modules/x': { version: '1' } } });
+  assert.equal(pickJson(lock, ['packages.node_modules/ws.version']), JSON.stringify({ 'packages.node_modules/ws.version': '8.18.0' }, null, 1));
+  assert.equal(pickJson(lock, ['packages.node_modules/nope.version']), null);
+});
+
+test('CLI: lockfile keys and whole-file entries light up when the environment changes, not the code', () => {
+  const root = setup();
+  const lock = (ws, x) => JSON.stringify({ packages: { 'node_modules/ws': { version: ws }, 'node_modules/x': { version: x } } });
+  mkdirSync(join(root, 'config'));
+  writeFileSync(join(root, 'package-lock.json'), lock('8.18.0', '1.0.0'));
+  writeFileSync(join(root, 'config/lobby.env'), 'LOBBY_TIMEOUT_MS=5000\n');
+  writeFileSync(join(root, 'formal/coverage.json'), JSON.stringify({
+    syncCommit: 'old', model: ['formal/Lobby.tla'],
+    covered: [
+      { file: 'server/index.ts', symbol: 'handleJoin' },
+      { file: 'package-lock.json', keys: ['packages.node_modules/ws.version'] },
+      { file: 'config/lobby.env' },
+    ],
+  }));
+  let r = cli(root, 'update');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^OK package-lock\.json keys:packages\.node_modules\/ws\.version$/m);
+  assert.match(r.stdout, /^OK config\/lobby\.env \(whole file\)$/m);
+  assert.equal(cli(root, 'check').status, 0);
+
+  writeFileSync(join(root, 'package-lock.json'), lock('8.18.0', '2.0.0'));
+  assert.equal(cli(root, 'check').status, 0, 'a package the model does not rely on may move');
+
+  writeFileSync(join(root, 'package-lock.json'), lock('9.0.0', '2.0.0'));
+  r = cli(root, 'check');
+  assert.equal(r.status, 1, 'the relied-on package moved: drift, with no code change');
+  assert.match(r.stdout, /^DRIFT package-lock\.json keys:/m);
+  assert.match(r.stdout, /^OK server\/index\.ts handleJoin$/m);
+
+  writeFileSync(join(root, 'package-lock.json'), lock('8.18.0', '2.0.0'));
+  writeFileSync(join(root, 'config/lobby.env'), 'LOBBY_TIMEOUT_MS=500\n');
+  r = cli(root, 'check');
+  assert.equal(r.status, 1, 'a config value the model treats as a constant moved');
+  assert.match(r.stdout, /^DRIFT config\/lobby\.env \(whole file\)$/m);
+
+  writeFileSync(join(root, 'package-lock.json'), JSON.stringify({ packages: {} }));
+  r = cli(root, 'check');
+  assert.match(r.stdout, /^MISSING package-lock\.json keys:/m);
+  assert.equal(cli(root, 'update').status, 1, 'update refuses when a key is gone');
+  writeFileSync(join(root, 'package-lock.json'), 'not json');
+  assert.match(cli(root, 'check', '--json').stdout, /not JSON/);
 });
 
 test('CLI: update writes git HEAD into syncCommit inside a git repo', () => {
