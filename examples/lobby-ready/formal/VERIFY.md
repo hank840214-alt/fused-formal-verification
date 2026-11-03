@@ -15,7 +15,7 @@ Covered (hashed in `coverage.json`; the gate fails when they change without this
 | `server.mjs` `handleConfig` | `HostChange` | a new version clears every flag |
 | `server.mjs` `handleStart` | `Start` | the game starts only when every player is ready, and only once |
 | `server.mjs` `handleJoin` | (no step: before Start a joiner cannot break either rule) | after Start a join is rejected, so nobody enters who never agreed to the started config |
-| `lobby.config.json` `maxPlayers` | size of `Players` | the model checks 2 players; the constant is a model bound, not a body |
+| `lobby.config.json` `maxPlayers` | size of `Players` | `handleJoin` enforces it; the model's `Players` set has the size it allows. The link is an assumption this entry makes visible, not something TLC checks: raise the value and the bound in `MC_guard.cfg` must be revisited |
 
 Not covered: the HTTP layer, the store's durability, time-outs (the model has no clock), more than one lobby process.
 

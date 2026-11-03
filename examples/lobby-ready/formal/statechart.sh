@@ -6,7 +6,7 @@
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../../.." && pwd)"
-pick_java() { for j in "${JAVA:-}" /opt/homebrew/opt/openjdk@21/bin/java /opt/homebrew/opt/openjdk/bin/java "$(command -v java)"; do [ -n "$j" ] && "$j" -version >/dev/null 2>&1 && { echo "$j"; return; }; done; }
+pick_java() { for j in "${JAVA:-}" /opt/homebrew/opt/openjdk@21/bin/java /opt/homebrew/opt/openjdk/bin/java /usr/local/opt/openjdk@21/bin/java /usr/local/opt/openjdk/bin/java "$(command -v java)"; do [ -n "$j" ] && "$j" -version >/dev/null 2>&1 && { echo "$j"; return; }; done; }
 java="$(pick_java)"; [ -n "$java" ] || { echo 'no working java' >&2; exit 1; }
 jar="${TLA2TOOLS:-$HOME/.local/share/tlaplus/tla2tools.jar}"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT

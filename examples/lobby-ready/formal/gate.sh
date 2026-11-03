@@ -11,7 +11,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/.." && pwd)"
 repo="$(cd "$root/../.." && pwd)"
 # macOS ships a /usr/bin/java stub that only prints "Unable to locate a Java Runtime"; a path is not enough, it must run.
-pick_java() { for j in "${JAVA:-}" /opt/homebrew/opt/openjdk@21/bin/java /opt/homebrew/opt/openjdk/bin/java "$(command -v java)"; do [ -n "$j" ] && "$j" -version >/dev/null 2>&1 && { echo "$j"; return; }; done; }
+pick_java() { for j in "${JAVA:-}" /opt/homebrew/opt/openjdk@21/bin/java /opt/homebrew/opt/openjdk/bin/java /usr/local/opt/openjdk@21/bin/java /usr/local/opt/openjdk/bin/java "$(command -v java)"; do [ -n "$j" ] && "$j" -version >/dev/null 2>&1 && { echo "$j"; return; }; done; }
 java="$(pick_java)"
 jar="${TLA2TOOLS:-$HOME/.local/share/tlaplus/tla2tools.jar}"
 jar_url='https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar'
@@ -56,13 +56,13 @@ tlc() {
   local states; states=$(grep -o -m1 '[0-9]* distinct states found' "$work/$1.log" | awk '{print $1}')
   local what
   if [ "$rc" = 0 ] && grep -q 'No error has been found' "$work/$1.log"; then what=none
-  elif [ "$rc" = 12 ]; then what=$(grep -m1 -o 'Invariant [A-Za-z]* is violated' "$work/$1.log" | awk '{print $2}' | grep . || echo 'no-result')
+  elif [ "$rc" = 12 ]; then what=$(grep -m1 -o 'Invariant [A-Za-z0-9_]* is violated' "$work/$1.log" | awk '{print $2}' | grep . || echo 'no-result')
   else what="exit-$rc"; fi
   echo "$what ${states:-?}"
 }
 expect() {
   local got; got=$(tlc "$1")
-  if [ "${got% *}" = "$2" ] && [ "${got#* }" != "?" ]; then row OK "$1" "$2, ${got#* } distinct states" "$3"
+  if [ "${got% *}" = "$2" ] && [ "${got#* }" != "?" ] && [ "${got#* }" -gt 0 ] 2>/dev/null; then row OK "$1" "$2, ${got#* } distinct states" "$3"
   else row FAIL "$1" "got ${got% *} (${got#* } states), want $2" "log kept: $here/gate-$1.log"; cp "$work/$1.log" "$here/gate-$1.log"; fi
 }
 expect MC_guard none 'Fix on (the code as it is)'
