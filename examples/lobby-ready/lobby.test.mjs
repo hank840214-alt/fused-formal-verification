@@ -53,3 +53,28 @@ test('mutant (fix off): the trace from MC_mutant reproduces on the real code', a
   assert.equal(p1.ready, true);
   assert.notEqual(p1.seen, lobby.state.config.version, `p1 ready with seen=${p1.seen}, room at ${lobby.state.config.version}`);
 });
+
+// The trace a reviewer found on 2026-11-03 when the model had `started = 0` guards the code did not:
+// start on v1, host changes to v2, a player presses ready (or a new player joins). The code now
+// rejects all three once the game has started; the model's Start step is the last step for a reason.
+test('after Start, ready / config / join are rejected, so the started config is the one everyone agreed to', async () => {
+  const store = gateStore();
+  const lobby = createLobby({ fix: true, store });
+  for (const id of ['p1', 'p2']) { const j = lobby.handleJoin(id); store.release('join'); await j; }
+  for (const id of ['p1', 'p2']) { const r = lobby.handleReady(id); store.release('ready'); await r; }
+  assert.equal(lobby.handleStart().status, 200);
+  assert.equal((await lobby.handleConfig('speed')).status, 409);
+  assert.equal((await lobby.handleReady('p1')).status, 409);
+  assert.equal((await lobby.handleJoin('p3')).status, 409);
+  for (const p of lobby.state.players.values()) assert.equal(p.seen, lobby.state.started.version);
+});
+
+test('a second ready from the same player while the first is in flight is rejected (ReadyBegin needs pc = idle)', async () => {
+  const store = gateStore();
+  const lobby = createLobby({ fix: true, store });
+  const j = lobby.handleJoin('p1'); store.release('join'); await j;
+  const first = lobby.handleReady('p1');
+  assert.equal((await lobby.handleReady('p1')).status, 409);
+  store.release('ready');
+  assert.equal((await first).status, 200);
+});

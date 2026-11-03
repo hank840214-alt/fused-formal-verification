@@ -33,20 +33,28 @@ export function memoryStore() {
 export function createLobby({ fix = true, store = memoryStore(), maxPlayers = settings.maxPlayers } = {}) {
   const state = { config: { version: 1, mode: 'classic' }, players: new Map(), started: null };
 
+  // Covered: a join after Start would add a player who never agreed to the started config.
   async function handleJoin(id) {
+    if (state.started) return { status: 409, error: 'game already started' };
     if (state.players.has(id)) return { status: 409, error: 'already in the room' };
     if (state.players.size >= maxPlayers) return { status: 409, error: 'room is full' };
-    state.players.set(id, { id, ready: false, seen: state.config.version });
+    state.players.set(id, { id, ready: false, pending: false, seen: state.config.version });
     await store.write({ op: 'join', id });
     return { status: 200, player: state.players.get(id) };
   }
 
   // Covered by formal/Lobby.tla as ReadyBegin (before the await) and ReadyCommit (after it).
+  // ReadyBegin's guards are these four checks: not started, in the room, not already ready, no ready in flight.
   async function handleReady(id) {
+    if (state.started) return { status: 409, error: 'game already started' };
     const player = state.players.get(id);
     if (!player) return { status: 404, error: 'not in the room' };
+    if (player.ready) return { status: 409, error: 'already ready' };
+    if (player.pending) return { status: 409, error: 'ready already in flight' };
+    player.pending = true;
     const version = state.config.version;            // ReadyBegin: the version this player is agreeing to
     await store.write({ op: 'ready', id, version }); // another request can run here
+    player.pending = false;
     if (fix && version !== state.config.version) {   // ReadyCommit (fixed): the room changed under us
       return { status: 409, error: 'config changed, look again' };
     }
@@ -57,6 +65,7 @@ export function createLobby({ fix = true, store = memoryStore(), maxPlayers = se
 
   // Covered as HostChange: a new version, every flag cleared.
   async function handleConfig(mode) {
+    if (state.started) return { status: 409, error: 'game already started' };
     state.config = { version: state.config.version + 1, mode };
     for (const p of state.players.values()) p.ready = false;
     await store.write({ op: 'config', version: state.config.version, mode });
@@ -65,6 +74,7 @@ export function createLobby({ fix = true, store = memoryStore(), maxPlayers = se
 
   // Covered as Start: only when every player is ready.
   function handleStart() {
+    if (state.started) return { status: 409, error: 'game already started' };
     if (state.players.size === 0) return { status: 409, error: 'nobody in the room' };
     for (const p of state.players.values()) if (!p.ready) return { status: 409, error: `${p.id} is not ready` };
     state.started = { ...state.config };

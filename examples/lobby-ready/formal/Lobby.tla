@@ -39,7 +39,8 @@ Init ==
   /\ captured = [p \in Players |-> 1]
   /\ started = 0
 
-\* handleReady, before `await store.write`: server.mjs "const version = state.config.version"
+\* handleReady, before `await store.write`: the four guards (started, in the room, ready, pending)
+\* and "const version = state.config.version". pc = "mid" is the code's `pending` flag.
 ReadyBegin(p) ==
   /\ started = 0
   /\ pc[p] = "idle"
@@ -58,7 +59,7 @@ ReadyCommit(p) ==
             /\ seen' = [seen EXCEPT ![p] = captured[p]]
   /\ UNCHANGED <<version, captured, started>>
 
-\* handleConfig: a new version, every flag cleared
+\* handleConfig: rejected once started; else a new version, every flag cleared
 HostChange ==
   /\ started = 0
   /\ version < MaxVersion
@@ -66,7 +67,9 @@ HostChange ==
   /\ ready' = [p \in Players |-> FALSE]
   /\ UNCHANGED <<seen, pc, captured, started>>
 
-\* handleStart: only when every player is ready
+\* handleStart: rejected once started; else only when every player is ready.
+\* handleJoin is not a step: before Start a joiner has ready = FALSE and seen = version, which
+\* cannot break either rule; after Start the code rejects it (covered by the drift guard).
 Start ==
   /\ started = 0
   /\ \A p \in Players : ready[p]

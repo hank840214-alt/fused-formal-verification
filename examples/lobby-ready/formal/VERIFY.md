@@ -11,12 +11,13 @@ Covered (hashed in `coverage.json`; the gate fails when they change without this
 
 | Where | Model step | What it guards |
 |---|---|---|
-| `server.mjs` `handleReady` | `ReadyBegin` (before the await), `ReadyCommit` (after it) | the flag lands only for the config the player read |
+| `server.mjs` `handleReady` | `ReadyBegin` (its four guards and the version read, before the await), `ReadyCommit` (after it) | the flag lands only for the config the player read; one ready in flight per player |
 | `server.mjs` `handleConfig` | `HostChange` | a new version clears every flag |
-| `server.mjs` `handleStart` | `Start` | the game starts only when every player is ready |
+| `server.mjs` `handleStart` | `Start` | the game starts only when every player is ready, and only once |
+| `server.mjs` `handleJoin` | (no step: before Start a joiner cannot break either rule) | after Start a join is rejected, so nobody enters who never agreed to the started config |
 | `lobby.config.json` `maxPlayers` | size of `Players` | the model checks 2 players; the constant is a model bound, not a body |
 
-Not covered: `handleJoin`, the HTTP layer, the store's durability, time-outs (the model has no clock), more than one lobby process.
+Not covered: the HTTP layer, the store's durability, time-outs (the model has no clock), more than one lobby process.
 
 ## 2. Run the check (one command, under a minute)
 
@@ -27,12 +28,14 @@ examples/lobby-ready/formal/gate.sh
 Four rows, each with a number only a real run can print. Expected:
 
 ```
-OK   drift      4 entries unchanged
-OK   repros     2 tests pass
-OK   MC_guard   none, 55 distinct states          Fix on (the code as it is)
+OK   drift      5/5 entries unchanged                    synced at <commit>
+OK   repros     4/4 tests ran and passed
+OK   MC_guard   none, 55 distinct states                 Fix on (the code as it is)
 OK   MC_mutant  ReadyMatchesConfig, 44 distinct states   Fix off: the mutation run
-== gate PASS in 4s
+== gate PASS in 2s
 ```
+
+A row is OK only with the expected count and exit code: `0/5`, `3/4` (a skipped test), or a TLC exit other than 0 (no error) / 12 (invariant violated) is FAIL.
 
 Tools: Node >= 20; Java 11+ (`JAVA=` to override; the macOS `/usr/bin/java` stub does not count); `tla2tools.jar` v1.7.4 (TLC 2.19) at `~/.local/share/tlaplus/` or `TLA2TOOLS=`; the gate downloads it when missing.
 
@@ -43,7 +46,7 @@ Tools: Node >= 20; Java 11+ (`JAVA=` to override; the macOS `/usr/bin/java` stub
 - `repros` FAIL on the "mutant" test: the trace no longer reproduces with `fix: false`. The code's await structure moved; re-read `handleReady` and bring `ReadyBegin`/`ReadyCommit` in line.
 - `MC_guard` violated: replay the TLC trace in `lobby.test.mjs` first (hold the await open with the gate store). Only a reproduced trace is a bug. Otherwise fix the model, never the property.
 - `MC_mutant` not violated: the bounds no longer reach the bug, or the property was weakened. The guard proves nothing until this row is red again.
-- Any row with `?` or `no-result`: the tool did not run. That is a FAIL, not a pass.
+- Any row with `?`, `no-result`, `exit-N` or a count below the expected one: the tool did not run, or not all of it. That is a FAIL, not a pass.
 
 ## 4. The change was intended: re-sync
 
@@ -57,7 +60,7 @@ Tools: Node >= 20; Java 11+ (`JAVA=` to override; the macOS `/usr/bin/java` stub
 
 - `Players = {p1, p2}` with symmetry; `MaxVersion = 3`. A larger run (3 players, 5 versions, Fix on) found nothing new: 2,739 distinct states, no error, 1 s (2026-11-03). It is not part of the gate.
 - One await per `handleReady`; the store write never fails. A failing write is outside the model.
-- `Done` is the only step from a started game; `CHECK_DEADLOCK` stays on so a stuck lobby would show.
+- `Done` is the only step from a started game: the code rejects ready, config and join once started (`handleJoin`/`handleReady`/`handleConfig`/`handleStart` each check `state.started`). `CHECK_DEADLOCK` stays on so a stuck lobby would show.
 
 ## Sync commit
 

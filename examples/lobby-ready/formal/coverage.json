@@ -1,23 +1,28 @@
 {
-  "syncCommit": "018985b0c1ef910e137b551850ffab095950c107",
+  "syncCommit": "078547aa25ee11e8eda96ab2529f7bad767e84d3",
   "model": [
     "formal/Lobby.tla"
   ],
   "covered": [
     {
       "file": "server.mjs",
+      "symbol": "handleJoin",
+      "hash": "67f4ff5d2c646a82d6eee3f5652378590f22feb8cb5146356c6182d9c4e7c57a"
+    },
+    {
+      "file": "server.mjs",
       "symbol": "handleReady",
-      "hash": "b398f26a4ecb2d9e1c58e1a933fd096061ba5e729b4a8fc002e5d4275180b51f"
+      "hash": "785635e3c7bc523e25322b4ce8054152345d5c0fe92025448dcec0732c1c6288"
     },
     {
       "file": "server.mjs",
       "symbol": "handleConfig",
-      "hash": "2b6007e0c28a61f766fb22ce5d22ed69f76a7463a4d54caf07757343be551308"
+      "hash": "ac9290e7627cf892bf3fdb55f189409cf3726b092f90a32f09d371ab2e5c0760"
     },
     {
       "file": "server.mjs",
       "symbol": "handleStart",
-      "hash": "ed7314024944ea86e0d9b8e551a7a1be7bf4dc989046ed963d5f2a73c87a2a80"
+      "hash": "83e0dc2a2521fcb26353b3c899b6eba37226e2f4fd9c4564a7e9197b78d247ae"
     },
     {
       "file": "lobby.config.json",

@@ -18,13 +18,13 @@ test('lobby-ready repros pass (fixed code survives the trace, mutant reproduces 
   const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
   const r = spawnSync(process.execPath, ['--test', '--test-reporter=tap', join(example, 'lobby.test.mjs')], { encoding: 'utf8', cwd: example, env });
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.equal((r.stdout.match(/^ok /gm) ?? []).length, 2);
+  assert.equal((r.stdout.match(/^ok /gm) ?? []).length, 4);
 });
 
 test('lobby-ready drift guard is in sync with the committed code', () => {
   const r = check(example);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.equal((r.stdout.match(/^OK /gm) ?? []).length, 4, r.stdout);
+  assert.equal((r.stdout.match(/^OK /gm) ?? []).length, 5, r.stdout);
 });
 
 function withCopy(fn) {
@@ -43,6 +43,12 @@ test('removing the re-check in handleReady is reported as DRIFT on that body', (
     assert.equal(r.status, 1);
     assert.match(r.stdout, /^DRIFT server\.mjs handleReady$/m);
     assert.match(r.stdout, /^OK server\.mjs handleConfig$/m);
+    // and the repro for the fixed code fails on that copy: the check can fail, so it proves something
+    const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+    const t = spawnSync(process.execPath, ['--test', '--test-reporter=tap', join(dir, 'lobby.test.mjs')], { encoding: 'utf8', cwd: dir, env });
+    assert.equal(t.status, 1);
+    assert.match(t.stdout, /^not ok \d+ - fixed code/m);
+    assert.match(t.stdout, /^ok \d+ - mutant/m);
   });
 });
 
@@ -53,6 +59,6 @@ test('changing maxPlayers is reported as DRIFT on the keys entry, bodies stay OK
     const r = check(dir);
     assert.equal(r.status, 1);
     assert.match(r.stdout, /^DRIFT lobby\.config\.json keys:maxPlayers$/m);
-    assert.equal((r.stdout.match(/^OK /gm) ?? []).length, 3);
+    assert.equal((r.stdout.match(/^OK /gm) ?? []).length, 4);
   });
 });
