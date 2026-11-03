@@ -18,6 +18,7 @@ The person asking does not need to know TLA+ or Lean. Every report is readable w
 | `scripts/drift-guard.mjs` | hashes covered function bodies, plus the lockfile entries and config values the model assumes; fails when they change without the model |
 | `scripts/tlc-dot-to-mermaid.mjs` | fallback statechart generator from TLC's `-dump dot` output |
 | `examples/statechart-view-account-binding.mjs` | a real `--view` module for pstack `statechart` (labels in the reader's words, groups, step labels) |
+| `examples/lobby-ready/` | a runnable end-to-end example: toy lobby server, TLA+ model, gate that can fail (4 s), drift guard with a `keys` entry, verify skill, statechart |
 | `prompts/run-verification.md` | a ready-to-paste task prompt that runs the skill on a project |
 | `docs/index.html` | an interactive explainer for non-engineers |
 | `research/` | source comparison (pstack vs Boris), the pstack `statechart` trial (2026-11-02), and what could not be verified |

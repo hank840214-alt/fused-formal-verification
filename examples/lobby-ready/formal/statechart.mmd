@@ -1,0 +1,29 @@
+---
+title: Lobby: ready flags and config changes
+---
+stateDiagram-v2
+  state "room v1: p1 not ready, p2 not ready" as s0
+  state "room v1: p1 pressing ready, p2 not ready" as s1
+  state "room v2: p1 not ready, p2 not ready" as s2
+  state "room v1: p1 ready, p2 not ready" as s3
+  state "room v1: p1 pressing ready, p2 pressing ready" as s4
+  state "room v2: p1 pressing ready, p2 not ready" as s5
+  state "room v3: p1 not ready, p2 not ready" as s6
+  state "room v1: p1 ready, p2 pressing ready" as s7
+  state "room v2: p1 pressing ready, p2 pressing ready" as s8
+  state "room v2: p1 READY FOR OLD CONFIG v1, p2 not ready" as s9
+  [*] --> s0
+  s0 --> s1 : presses ready (reads the config)
+  s0 --> s2 : host changes the config
+  s1 --> s3 : ready flag lands
+  s1 --> s4 : presses ready (reads the config)
+  s1 --> s5 : host changes the config
+  s2 --> s5 : presses ready (reads the config)
+  s2 --> s6 : host changes the config
+  s3 --> s7 : presses ready (reads the config)
+  s3 --> s2 : host changes the config
+  s4 --> s7 : ready flag lands
+  s4 --> s8 : host changes the config
+  s5 --> s9 : ready flag lands
+  classDef breaks fill:#fdd,stroke:#c00,stroke-width:2px,color:#600
+  class s9 breaks

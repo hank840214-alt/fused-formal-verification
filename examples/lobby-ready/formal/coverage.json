@@ -1,0 +1,30 @@
+{
+  "syncCommit": "1b33a1706de28bce4cb240b2694a75c6e7e093da",
+  "model": [
+    "formal/Lobby.tla"
+  ],
+  "covered": [
+    {
+      "file": "server.mjs",
+      "symbol": "handleReady",
+      "hash": "b398f26a4ecb2d9e1c58e1a933fd096061ba5e729b4a8fc002e5d4275180b51f"
+    },
+    {
+      "file": "server.mjs",
+      "symbol": "handleConfig",
+      "hash": "2b6007e0c28a61f766fb22ce5d22ed69f76a7463a4d54caf07757343be551308"
+    },
+    {
+      "file": "server.mjs",
+      "symbol": "handleStart",
+      "hash": "ed7314024944ea86e0d9b8e551a7a1be7bf4dc989046ed963d5f2a73c87a2a80"
+    },
+    {
+      "file": "lobby.config.json",
+      "keys": [
+        "maxPlayers"
+      ],
+      "hash": "02aeda8b5436534975e91a007eb68c607952b617afee43a623588415e54371e2"
+    }
+  ]
+}
